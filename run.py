@@ -29,7 +29,8 @@ def build_tsc(ts_dir: str, ref: str) -> str:
     print(f'{ref=} -> {sha=}')
     tmpdir = f'/tmp/{sha}'
     if os.path.exists(tmpdir):
-        shutil.rmtree(tmpdir)
+        return sha, tmpdir
+        # shutil.rmtree(tmpdir)
     subprocess.check_call(['git', 'checkout', sha])
     subprocess.check_call(['npx', 'hereby', 'local'])
     shutil.copytree('built', tmpdir)
@@ -38,37 +39,47 @@ def build_tsc(ts_dir: str, ref: str) -> str:
     return sha, tmpdir
 
 
+def run(cmd, **kwargs):
+    stdout = []
+    stderr = []
+    return_code = None
+    with subprocess.Popen(cmd, **kwargs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as process:
+        for line in process.stdout:
+            line_str = line.decode("utf8")
+            print(line_str, end="")
+            stdout.append(line_str)
+        return_code = process.wait()
+        if return_code != 0:
+            raise subprocess.CalledProcessError(return_code)
+        stderr = process.stderr.read() if process.stderr else None
+        return ('\n'.join(stdout), stderr)
+
+
 def run_experiment(ts_dir: str, command: str) -> tuple[str, str]:
     command = command.replace('$tsc', f'{ts_dir}/local/tsc.js')
     print(f'Running {command}')
 
-    result = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = result.communicate()
-
-    if result.returncode != 0:
-        raise subprocess.CalledProcessError(result.returncode)
-
-    stdout = stdout.decode('utf8')
-    stderr = stderr.decode('utf8')
-    print('stdout:')
-    print(stdout)
-    print('\nstderr:')
-    print(stderr)
-    print('\n')
+    stdout, stderr = run(command, shell=True)
+    if stderr:
+        print('stderr:')
+        print(stderr)
+        print('\n')
+    return stdout, stderr
 
 
 def main():
     exp_file = sys.argv[1]
     exp: Experiment = json.load(open(exp_file))
     print(json.dumps(exp, indent=True))
+    (name, _) = os.path.splitext(os.path.basename(exp_file))
+    timestamp = time.strftime('%Y-%m-%dT%H%M%S')
+    output_file = os.path.abspath(f'results/tmp-{name}-{timestamp}.json')
+    final_output_file = os.path.abspath(f'results/{name}-{timestamp}.json')
     control_sha, control_dir = build_tsc(exp['ts_dir'], exp['ref_control'])
     print(f'{control_dir=}')
     exp_sha, exp_dir = build_tsc(exp['ts_dir'], exp['ref_exp'])
     print(f'{exp_dir=}')
 
-    (name, _) = os.path.splitext(os.path.basename(exp_file))
-    timestamp = time.strftime('%Y-%m-%dT%H%M%S')
-    output_file = f'results/{name}-{timestamp}.json'
     output = {
         'experiment': exp,
         'resolved_shas': {
@@ -88,14 +99,14 @@ def main():
     }
     def checkpoint():
         with open(output_file, 'w') as out:
-            json.dump(output, out)
+            json.dump(output, out, indent=True)
 
     checkpoint()
     print(f'Logging results to {output_file}')
 
     for exp_num in range(exp['num_runs']):
-        print(f'Running {exp_num=}')
         for arm in ('control', 'exp'):
+            print(f'Running {exp_num=} {arm=}')
             start_secs = time.time()
             stdout, stderr = run_experiment(control_dir if arm == 'control' else exp_dir, exp['command'])
             end_secs = time.time()
@@ -111,14 +122,16 @@ def main():
             )
             output['times'][arm].append(elapsed_secs)
             times = output['times'][arm]
-            output['stats']['arm'] = {
+            output['stats'][arm] = {
                 'mean': statistics.mean(times),
-                'stdev': statistics.pstdev(times),
+                'stdev': statistics.stdev(times),
             }
             checkpoint()
+            print('\n----\n')
 
     output['end_time_secs'] = time.time()
     checkpoint()
+    shutil.move(output_file, final_output_file)
 
     stats = output['stats']
     control_mean = stats['control']['mean']
