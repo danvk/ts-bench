@@ -124,7 +124,7 @@ def main():
             times = output['times'][arm]
             output['stats'][arm] = {
                 'mean': statistics.mean(times),
-                'stdev': statistics.stdev(times),
+                'stdev': statistics.stdev(times) if len(times) >= 2 else 0.0,
             }
             checkpoint()
             print('\n----\n')
