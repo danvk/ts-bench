@@ -1,0 +1,8 @@
+{
+    "description": "PR branch vs. main",
+    "ref_control": "main",
+    "ref_exp": "infer-type-predicate-16069",
+    "command": "cd /Users/danvk/code/TypeScript-Compiler-Unions; npx hereby clean-src && node $tsc -b --emitDeclarationOnly false src/compiler --extendedDiagnostics",
+    "ts_dir": "/Users/danvk/github/TypeScript",
+    "num_runs": 5
+}
