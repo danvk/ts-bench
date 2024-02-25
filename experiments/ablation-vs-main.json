@@ -1,0 +1,8 @@
+{
+    "description": "Do all the work to infer a type predicate, but don't actually infer it. Tests inference of predicates vs. additional type-checking time from using those predicates.",
+    "ref_control": "main",
+    "ref_exp": "ablation-test",
+    "command": "cd /Users/danvk/code/TypeScript-Compiler-Unions; npx hereby clean-src && node $tsc -b --emitDeclarationOnly false src/compiler --extendedDiagnostics",
+    "ts_dir": "/Users/danvk/github/TypeScript",
+    "num_runs": 8
+}
