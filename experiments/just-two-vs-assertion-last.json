@@ -1,0 +1,8 @@
+{
+    "description": "Try moving the check for an assertion (which never triggers) to be last.",
+    "ref_control": "just-two-checks",
+    "ref_exp": "assertion-check-last",
+    "command": "cd /Users/danvk/code/TypeScript-Compiler-Unions; npx hereby clean-src && node $tsc -b --emitDeclarationOnly false src/compiler --extendedDiagnostics",
+    "ts_dir": "/Users/danvk/github/TypeScript",
+    "num_runs": 8
+}

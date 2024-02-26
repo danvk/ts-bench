@@ -2,7 +2,6 @@
 #
 # ./run.py experiment.json
 
-import asyncio
 import statistics
 import subprocess
 import os
@@ -138,8 +137,9 @@ def main():
     control_stdev = stats['control']['stdev']
     exp_mean = stats['exp']['mean']
     exp_stdev = stats['exp']['stdev']
+    pct = 100.0 * (exp_mean - control_mean) / control_mean
     print(f'Control: {control_mean:.2f} +/- {control_stdev:.2f} s')
-    print(f'    Exp: {exp_mean:.2f} +/- {exp_stdev:.2f} s')
+    print(f'    Exp: {exp_mean:.2f} +/- {exp_stdev:.2f} s = {pct:+.2f}%')
 
 if __name__ == '__main__':
     main()
